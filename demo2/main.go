@@ -22,5 +22,5 @@ func main() {
 	}
 
 	//Print child process output
-	fmt.Println(output)
+	fmt.Println(string(output))
 }
