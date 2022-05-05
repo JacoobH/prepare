@@ -24,12 +24,16 @@ func main() {
 		fmt.Println(err)
 		return
 	}
+
 	//Use to read or write KV of etcd
 	kv = clientv3.NewKV(client)
 
-	if putResp, err = kv.Put(context.TODO(), "cron/jobs/job1", "hello"); err != nil {
+	if putResp, err = kv.Put(context.TODO(), "cron/jobs/job1", "hi", clientv3.WithPrevKV()); err != nil {
 		fmt.Println(err)
 	} else {
 		fmt.Println("Revision:", putResp.Header.Revision)
+		if putResp.PrevKv != nil {
+			fmt.Println("PrevValue:", string(putResp.PrevKv.Value))
+		}
 	}
 }
