@@ -15,6 +15,8 @@ func main() {
 		lease          clientv3.Lease
 		leaseGrantResp *clientv3.LeaseGrantResponse
 		leaseId        clientv3.LeaseID
+		keepResp       *clientv3.LeaseKeepAliveResponse
+		keepRespChan   <-chan *clientv3.LeaseKeepAliveResponse
 		putResp        *clientv3.PutResponse
 		getResp        *clientv3.GetResponse
 		kv             clientv3.KV
@@ -39,6 +41,28 @@ func main() {
 
 	//Get id of lease
 	leaseId = leaseGrantResp.ID
+
+	//ctx, _ := context.WithTimeout(context.TODO(), 5 * time.Second)
+
+	if keepRespChan, err = lease.KeepAlive(context.TODO(), leaseId); err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	go func() {
+		for {
+			select {
+			case keepResp = <-keepRespChan:
+				if keepResp == nil {
+					fmt.Println("lease expired")
+					goto END
+				} else { // 每秒会续租一次, 所以就会受到一次应答
+					fmt.Println("lease keep alive:", keepResp.ID)
+				}
+			}
+		}
+	END:
+	}()
 
 	kv = clientv3.NewKV(client)
 
