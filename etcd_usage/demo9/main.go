@@ -86,5 +86,10 @@ func main() {
 	// Determine if you grabbed the lock
 	if !txnResp.Succeeded {
 		fmt.Println("The lock is occupied", string(txnResp.Responses[0].GetResponseRange().Kvs[0].Value))
+		return
 	}
+
+	// 2.Deal with business
+	fmt.Println("Deal with business")
+	time.Sleep(5 * time.Second)
 }
