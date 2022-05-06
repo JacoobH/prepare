@@ -3,10 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"time"
 )
 
 // TimePoint Task execution time point
@@ -24,17 +22,21 @@ type LogRecord struct {
 	TimePoint TimePoint `bson:"timePoint"` // execution time point
 }
 
+// FindByJobName jobName filter
+type FindByJobName struct {
+	JobName string `bson:"jobName"`
+}
+
 func main() {
 	var (
 		client     *mongo.Client
 		clientOps  *options.ClientOptions
 		err        error
 		collection *mongo.Collection
+		cond       *FindByJobName
+		findOpt    *options.FindOptions
 		record     *LogRecord
-		logArr     []interface{} // just like C void* | Java Object
-		result     *mongo.InsertManyResult
-		insertId   interface{} // objectId
-		docId      primitive.ObjectID
+		cur        *mongo.Cursor
 	)
 	clientOps = options.Client().ApplyURI("mongodb://localhost:27017")
 	if client, err = mongo.Connect(context.TODO(), clientOps); err != nil {
@@ -42,34 +44,24 @@ func main() {
 		return
 	}
 	collection = client.Database("cron").Collection("log")
-
-	// Insert data
-	record = &LogRecord{
+	cond = &FindByJobName{
 		JobName: "job10",
-		Command: "echo hello",
-		Err:     "",
-		Content: "hello",
-		TimePoint: TimePoint{
-			StartTime: time.Now().Unix(),
-			EndTime:   time.Now().Unix() + 10,
-		},
 	}
+	findOpt = options.Find()
+	findOpt.SetSkip(0)
+	findOpt.SetLimit(2)
 
-	logArr = []interface{}{
-		record,
-		record,
-		record,
-	}
-
-	if result, err = collection.InsertMany(context.TODO(), logArr); err != nil {
+	if cur, err = collection.Find(context.TODO(), cond, findOpt); err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	// snowflake
-
-	for _, insertId = range result.InsertedIDs {
-		docId = insertId.(primitive.ObjectID)
-		fmt.Println("autoincrement id:", docId.Hex())
+	for cur.Next(context.TODO()) {
+		record = &LogRecord{}
+		if err = cur.Decode(record); err != nil {
+			fmt.Println(err)
+			return
+		}
+		fmt.Println(*record)
 	}
 }
