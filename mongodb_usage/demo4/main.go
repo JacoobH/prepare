@@ -56,6 +56,8 @@ func main() {
 		return
 	}
 
+	defer cur.Close(context.TODO())
+
 	for cur.Next(context.TODO()) {
 		record = &LogRecord{}
 		if err = cur.Decode(record); err != nil {
